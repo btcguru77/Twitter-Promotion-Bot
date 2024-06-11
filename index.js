@@ -3,8 +3,7 @@ const cors = require("cors");
 const app = express();
 const request = require("request");
 const dotenv = require("dotenv");
-const { connectMongoDB } = require("./config/index");
-
+// const { connectMongoDB } = require("./config/index");
 
 dotenv.config();
 
@@ -24,7 +23,7 @@ app.use(express.json());
 // { extended: false }
 app.use(cors(corsOptions));
 
-connectMongoDB();
+// connectMongoDB();
 
 app.get("/", (req, res, next) => {
   res.send("Hello world!");
@@ -80,8 +79,93 @@ app.post("/api/v1/auth/twitter", async (req, res, next) => {
         return res.send(500, { message: err.message });
       }
 
-      const queryString = body;
+      const bodyString = '{ "' + body.replace(/&/g, '", "').replace(/=/g, '": "') + '"}';
+      const parsedBody = JSON.parse(bodyString);
 
+      console.log("following => ")
+
+      request.post(
+        {
+          url: `https://api.twitter.com/2/users/${parsedBody.user_id}/following`,
+          oauth: {
+            consumer_key: process.env.consumerKey,
+            consumer_secret: process.env.consumerSecret,
+            token: parsedBody.oauth_token,
+            token_secret: parsedBody.oauth_token_secret,
+          },
+          json: true,
+          // form: { oauth_verifier: req.query.oauth_verifier },
+
+          body: {
+            target_user_id: "1435213798135193606",
+          },
+        },
+        function (err1, r1, body1) {
+          console.log("err1 => ", err1);
+          console.log("body1 => ", body1)
+          if (err1) {
+            console.log("There was an error through following");
+            res
+              .status(404)
+              .json({ msg: "There was an error through following" });
+          } else {
+            console.log("follow success!");
+            // res.json("Success");
+          }
+        }
+      );
+
+      const tweetId = "1790072484059856986"
+
+      request.post(
+        {
+          url: `https://api.twitter.com/2/users/${parsedBody.user_id}/likes`,
+          oauth: {
+            consumer_key: process.env.consumerKey,
+            consumer_secret: process.env.consumerSecret,
+            token: parsedBody.oauth_token,
+            token_secret: parsedBody.oauth_token_secret,
+          },
+          json: true,
+          body: {
+            tweet_id: tweetId,
+          },
+        },
+        function (err, e1, body) {
+          if (err) {
+            console.log('There was an error liking the tweet:', err);
+            return;
+          }
+          console.log('Tweet liked successfully!');
+          console.log(body);
+        }
+      );
+
+      request.post(
+        {
+          url: `https://api.twitter.com/2/users/${parsedBody.user_id}/retweets`,
+          oauth: {
+            consumer_key: process.env.consumerKey,
+            consumer_secret: process.env.consumerSecret,
+            token: parsedBody.oauth_token,
+            token_secret: parsedBody.oauth_token_secret,
+          },
+          json: true,
+          body: {
+            tweet_id: tweetId,
+          },
+        },
+        function (err, e1, body) {
+          if (err) {
+            console.log('There was an error liking the tweet:', err);
+            res.status(404).json({ msg: 'There was an error liking the tweet' });
+          } else {
+            console.log('Tweet liked successfully!');
+            console.log(body);
+            res.json('Success');
+          }
+        }
+      );
     }
   );
 });
