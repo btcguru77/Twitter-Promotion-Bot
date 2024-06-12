@@ -5,9 +5,14 @@ const TweetSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  content: {
+  owner: {
     type: String,
+    required: true
   },
+  liked: {
+    type: Boolean,
+    default: false
+  }
 });
 
 const TweetModel = mongoose.model("tweet", TweetSchema);
