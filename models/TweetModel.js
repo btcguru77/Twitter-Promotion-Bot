@@ -12,6 +12,10 @@ const TweetSchema = new mongoose.Schema({
   liked: {
     type: Boolean,
     default: false
+  },
+  timestamp: {
+    type: Date,
+    default: Date.now
   }
 });
 

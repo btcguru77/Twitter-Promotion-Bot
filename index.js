@@ -9,6 +9,9 @@ const cron = require("node-cron");
 const { TwitterApi } = require("twitter-api-v2");
 const TweetModel = require("./models/TweetModel");
 const UserModel = require("./models/UserModel");
+const ScheduleModel = require("./models/ScheduleModel");
+const ContentModel = require("./models/ContentsModel");
+const axios = require('axios')
 
 dotenv.config();
 
@@ -37,20 +40,23 @@ app.get("/", (req, res, next) => {
 const getTweets = async (target_id, callNum) => {
   console.log(`Fetching tweets for call number ${callNum}`);
   try {
-    const client = new TwitterApi({
-      appKey: process.env.consumerKey,
-      appSecret: process.env.consumerSecret,
-      accessToken: process.env.accessToken,
-      accessSecret: process.env.accessSecret,
-    });
+    const query = `from:${target_id}`;
 
-    const user_id = target_id;
-    const tweets = await client.v2.userTimeline(user_id, {
-      max_results: 10,
-    });
+    const response = await axios.get(
+      "https://api.twitter.com/2/tweets/search/recent",
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.TWITTER_TOKEN}`,
+        },
+        params: {
+          query: query,
+          max_results: 10
+        },
+      }
+    );
 
-    for (let i = 0; i < tweets.data.data.length; i++) {
-      const element = tweets.data.data[i];
+    for (let i = 0; i < response.data.data.length; i++) {
+      const element = response.data.data[i];
       if (element.text.indexOf("RT @") > -1) continue;
       const isTweet = await TweetModel.findOne({ tweet_id: element.id });
       if (isTweet) continue;
@@ -64,7 +70,7 @@ const getTweets = async (target_id, callNum) => {
     }
 
     // Check rate limit headers and wait if necessary
-    const rateLimit = tweets.rateLimit;
+    const rateLimit = response.rateLimit;
     if (rateLimit && rateLimit.remaining === 0) {
       const waitTime = rateLimit.reset * 1000 - Date.now();
       console.log(`Rate limit reached. Waiting for ${waitTime / 1000} seconds`);
@@ -183,6 +189,46 @@ const likeAndTweet = async (tweet_id, target_id) => {
 
 }
 
+const postTweet = async(contents) => {
+  console.log('tweeting ===> ')
+  const users = await UserModel.find();
+  
+  if (users) {
+    for (let i = 0; i < users.length; i++) {
+      const user = users[i];
+      const randomIndex = Math.floor(Math.random() * contents.length);
+      request.post(
+        {
+          url: `https://api.twitter.com/2/tweets`,
+          oauth: {
+            consumer_key: process.env.consumerKey,
+            consumer_secret: process.env.consumerSecret,
+            token: user.access_token,
+            token_secret: user.access_token_secret,
+          },
+          json: true,
+          body: {
+            text: contents[randomIndex].content
+          }
+        },
+        function (err1, r1, body1) {
+          console.log("post tweet err1 => ", err1);
+          console.log("post tweet body1 => ", body1);
+          if (err1) {
+            console.log("There was an error through post tweet");
+            res
+              .status(404)
+              .json({ msg: "There was an error through post tweet" });
+          } else {
+            console.log("post success!");
+            // res.json("Success");
+          }
+        }
+      );
+    }
+  }
+}
+
 const targets = [
   "1701655804917555200",
   "1797946571650158592",
@@ -198,12 +244,61 @@ cron.schedule("*/15 * * * *", async () => {
   }
 });
 
+// cron job for schedule post
+cron.schedule('*/8 * * * *', async () => {
+  console.log('first ==> ');
+  const now = new Date();
+  const eightMinsago = new Date(now.getTime() - 8 * 60000);
+  const schedule = await ScheduleModel.findOne({schedule: {$gte: eightMinsago, $lte: now }, done: false});
+  console.log('schedule => ', schedule)
+  const contents = await ContentModel.find({});
+  if(!schedule) return
+  console.log('second ==> ')
+  await postTweet(contents)
+  await ScheduleModel.findOneAndUpdate({_id: schedule.id}, {done: true});
+})
+
+app.post('/addcontent', async (req, res) => {
+  const {content} = req.body;
+
+  try {
+    const newContentSchema = new ContentModel({
+      content: content
+    })
+  
+    const newContent = await newContentSchema.save();
+  
+    res.json({newContent})
+  } catch (error) {
+    res.status(500).json({err: error})
+  }
+
+})
+
+app.post('/addSchedule', async (req, res) => {
+  const {timelater} = req.body;
+
+  try {
+    const now = new Date();
+    const newScheduleSchema = new ScheduleModel({
+      schedule: new Date(now.getTime() + timelater * 60000)
+    })
+  
+    const newSchedule = await newScheduleSchema.save();
+  
+    res.json({newSchedule});
+  } catch (error) {
+    res.status(500).json({err: error});
+  }
+})
+
 app.post('/checking', async (req, res) => {
   console.log("calling checking api", req.body)
   const {tweet_id, target_id} = req.body;
   console.log("🚀 ~ app.post ~ target_id:", target_id)
   console.log("🚀 ~ app.post ~ tweet_id:", tweet_id)
   await likeAndTweet(tweet_id, target_id);
+  // await getTweets(target_id, 1)
   res.json("success");
 })
 
