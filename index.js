@@ -15,7 +15,7 @@ const axios = require('axios')
 
 dotenv.config();
 
-const whitelist = ["http://localhost:5173"];
+const whitelist = ["http://localhost:5173", "https://shicat.vercel.app", "https://demo.shicat.xyz", "https://shicat.xyz"];
 
 const corsOptions = {
   origin: function (origin, callback) {
