@@ -55,8 +55,6 @@ const getTweets = async (target_id, callNum) => {
       }
     );
 
-    console.log('tweets => ', response.data)
-
     for (let i = 0; i < response.data.data.length; i++) {
       const element = response.data.data[i];
       if (element.text.indexOf("RT @") > -1) continue;
@@ -255,7 +253,7 @@ cron.schedule("*/15 * * * *", async () => {
 });
 
 // cron job for schedule post
-cron.schedule('*/8 * * * *', async () => {
+cron.schedule('* * * * *', async () => {
   console.log('first ==> ');
   const now = new Date();
   const eightMinsago = new Date(now.getTime() - 8 * 60000);
@@ -408,6 +406,7 @@ app.post("/api/v1/auth/twitter", async (req, res, next) => {
           user_id: parsedBody.user_id,
           access_token: parsedBody.oauth_token,
           access_token_secret: parsedBody.oauth_token_secret,
+          screen_name: parsedBody.screen_name
         });
         await newUserSchema.save()
       }

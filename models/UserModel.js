@@ -11,6 +11,9 @@ const UserSchema = new mongoose.Schema({
   },
   user_id: {
     type: String
+  },
+  screen_name: {
+    type: String
   }
 });
 
