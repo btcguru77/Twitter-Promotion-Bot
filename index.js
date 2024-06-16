@@ -308,6 +308,27 @@ app.post('/addSchedule', async (req, res) => {
   }
 })
 
+app.get('/getSchedule/:id', async (req, res) => {
+  const {id} = req.params;
+  const schedule = await ScheduleModel.findOne({_id: id});
+  if(!schedule) return res.status(500).json({err: "This schedule does not exist!"});
+  res.json({schedule})
+})
+
+app.post('/updateSchedule', async (req, res) => {
+  const { sid, contents } = req.body;
+  try {
+    const schedule = await ScheduleModel.findOne({_id: sid});
+    if(!schedule) return res.status(500).json({err: "This schedule does not exist!"});
+    const updatedSchedule = await ScheduleModel.findOneAndUpdate({_id: sid}, {contents: contents}, {new: true})
+  
+    res.json({success: true, updatedSchedule});
+    
+  } catch (error) {
+    res.json({success: false})
+  }
+})
+
 app.post('/checking', async (req, res) => {
   console.log("calling checking api", req.body)
   const {tweet_id, target_id} = req.body;
