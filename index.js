@@ -327,6 +327,14 @@ app.post('/updateSchedule', async (req, res) => {
   }
 })
 
+app.post('/removeSchedule', async(req, res) => {
+  const {sid} = req.body;
+  const schedule = await ScheduleModel.findOne({_id: sid});
+  if(!schedule) return res.status(500).json({success: false})
+  const updated = await ScheduleModel.deleteOne({_id: sid});
+  res.json({success: true})
+})
+
 app.post('/checking', async (req, res) => {
   console.log("calling checking api", req.body)
   const {tweet_id, target_id} = req.body;
