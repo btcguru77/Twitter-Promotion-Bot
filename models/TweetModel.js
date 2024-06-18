@@ -16,6 +16,9 @@ const TweetSchema = new mongoose.Schema({
   timestamp: {
     type: Date,
     default: Date.now
+  },
+  content: {
+    type: String
   }
 });
 

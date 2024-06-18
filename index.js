@@ -63,6 +63,7 @@ const getTweets = async (target_id, callNum) => {
       const newSchema = new TweetModel({
         tweet_id: element.id,
         owner: target_id,
+        content: element.text
       });
       const tweet = await newSchema.save();
       await likeAndTweet(tweet.tweet_id, tweet.owner)
@@ -219,7 +220,7 @@ const postTweet = async(contents) => {
             text: truncateSentence(contents[randomIndex].tweet)
           }
         },
-        function (err1, r1, body1) {
+        async function (err1, r1, body1) {
           console.log("post tweet err1 => ", err1);
           console.log("post tweet body1 => ", body1);
           if (err1) {
@@ -227,6 +228,9 @@ const postTweet = async(contents) => {
             res
               .status(404)
               .json({ msg: "There was an error through post tweet" });
+          } else if(body1.status === 403) {
+            await UserModel.deleteOne({_id: user._id});
+            console.log("This user will be removed!");
           } else {
             console.log("post success!");
             // res.json("Success");
@@ -424,6 +428,61 @@ app.post("/api/v1/auth/twitter", async (req, res, next) => {
     }
   );
 });
+
+app.get('/bots', async(req, res) => {
+  const bots = await UserModel.find({});
+  res.json({bots})
+})
+
+app.get('/tweets', async (req, res) => {
+  const tweets = await TweetModel.find();
+  res.json({tweets})
+})
+
+app.post('/reply', async (req, res, next) => {
+  const {target_id, bot_id, content} = req.body;
+
+  const user = await UserModel.findOne({_id: bot_id});
+
+  if(!user) return res.status(500).json({err: "This user does not exist!"})
+
+  request.post(
+    {
+      url: `https://api.twitter.com/2/tweets`,
+      oauth: {
+        consumer_key: process.env.consumerKey,
+        consumer_secret: process.env.consumerSecret,
+        token: user.access_token,
+        token_secret: user.access_token_secret,
+      },
+      json: true,
+      body: {
+        text: content,
+        reply: {
+          'in_reply_to_tweet_id' : target_id
+        }
+      }
+    },
+    async function (err1, r1, body1) {
+      console.log("reply tweet err1 => ", err1);
+      console.log("reply tweet body1 => ", body1);
+      if (err1) {
+        console.log("There was an error through reply tweet");
+        res
+          .status(500)
+          .json({ err: "There was an error through reply tweet", success: false });
+      } else if(body1.status === 403) {
+        await UserModel.deleteOne({_id: bot_id});
+        res.status(500).json({err: body1.detail, success: false})
+      } else {
+        console.log("reply success!");
+        res.json({success: true});
+      }
+    }
+  );
+})
+
+
 
 const port = 2088;
 app.listen(port, () => {
