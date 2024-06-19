@@ -482,8 +482,46 @@ app.post('/reply', async (req, res, next) => {
   );
 })
 
+app.post('/quote', async (req, res, next) => {
+  const {target_id, bot_id, content} = req.body;
 
+  const user = await UserModel.findOne({_id: bot_id});
 
+  if(!user) return res.status(500).json({err: "This user does not exist!"})
+
+  request.post(
+    {
+      url: `https://api.twitter.com/2/tweets`,
+      oauth: {
+        consumer_key: process.env.consumerKey,
+        consumer_secret: process.env.consumerSecret,
+        token: user.access_token,
+        token_secret: user.access_token_secret,
+      },
+      json: true,
+      body: {
+        text: content,
+        quote_tweet_id: target_id
+      }
+    },
+    async function (err1, r1, body1) {
+      console.log("quote tweet err1 => ", err1);
+      console.log("quote tweet body1 => ", body1);
+      if (err1) {
+        console.log("There was an error through quote tweet");
+        res
+          .status(500)
+          .json({ err: "There was an error through quote tweet", success: false });
+      } else if(body1.status === 403) {
+        await UserModel.deleteOne({_id: bot_id});
+        res.status(500).json({err: body1.detail, success: false})
+      } else {
+        console.log("quote success!");
+        res.json({success: true});
+      }
+    }
+  );
+})
 const port = 2088;
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
