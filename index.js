@@ -435,7 +435,7 @@ app.get('/bots', async(req, res) => {
 })
 
 app.get('/tweets', async (req, res) => {
-  const tweets = await TweetModel.find().sort({timestamp: -1});
+  const tweets = await TweetModel.find().sort({tweet_id: -1});
   res.json({tweets})
 })
 
