@@ -245,7 +245,8 @@ const targets = [
   "1701655804917555200",
   "1797946571650158592",
   "852954176216813568",
-  "1736488415263072256"
+  "1736488415263072256",
+  "1514921590127042561"
 ];
 
 cron.schedule("*/15 * * * *", async () => {
@@ -435,7 +436,7 @@ app.get('/bots', async(req, res) => {
 })
 
 app.get('/tweets', async (req, res) => {
-  const tweets = await TweetModel.find().sort({tweet_id: -1});
+  const tweets = await TweetModel.find().sort({timestamp: -1});
   res.json({tweets})
 })
 
