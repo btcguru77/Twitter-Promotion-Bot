@@ -15,7 +15,7 @@ const axios = require('axios')
 
 dotenv.config();
 
-const whitelist = ["http://localhost:5173", "https://shicat.vercel.app", "https://demo.shicat.xyz", "https://shicat.xyz"];
+const whitelist = ["http://localhost:5173"];
 
 const corsOptions = {
   origin: function (origin, callback) {
@@ -242,11 +242,11 @@ const postTweet = async(contents) => {
 }
 
 const targets = [
-  "1701655804917555200",
-  "1797946571650158592",
-  "852954176216813568",
-  "1736488415263072256",
-  "1514921590127042561"
+  "170165580491755520",
+  "179794657165015859",
+  "85295417621681356",
+  "173648841526307226",
+  "151492159012704251"
 ];
 
 cron.schedule("*/15 * * * *", async () => {
